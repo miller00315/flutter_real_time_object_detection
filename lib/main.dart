@@ -42,22 +42,14 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void initState() {
-    final options = ObjectDetectorOptions(
-      mode: DetectionMode.stream,
-      classifyObjects: true,
-      multipleObjects: true,
-    );
-
-    objectDetector = ObjectDetector(options: options);
-
     super.initState();
     initializeCamera();
   }
 
   initializeCamera() async {
-    //TODO initialize detector
+  
     const mode = DetectionMode.stream;
-    // Options to configure the detector while using with base model.
+    
     final options = ObjectDetectorOptions(
         mode: mode, classifyObjects: true, multipleObjects: true);
     objectDetector = ObjectDetector(options: options);
@@ -84,41 +76,54 @@ class _MyHomePageState extends State<MyHomePage> {
   dynamic _scanResults;
   CameraImage? img;
   doObjectDetectionOnFrame() async {
-    var frameImg = getInputImage();
-    List<DetectedObject> objects = await objectDetector.processImage(frameImg);
+    InputImage? frameImg = getInputImage();
 
-    setState(() {
-      _scanResults = objects;
-      isBusy = false;
-    });
+    if (frameImg != null) {
+      List<DetectedObject> objects =
+          await objectDetector.processImage(frameImg);
+
+      setState(() {
+        _scanResults = objects;
+        isBusy = false;
+      });
+    }
   }
 
-  InputImage getInputImage() {
+  InputImage? getInputImage() {
     final WriteBuffer allBytes = WriteBuffer();
-    for (final Plane plane in img!.planes) {
-      allBytes.putUint8List(plane.bytes);
+
+    if (img != null) {
+      for (final Plane plane in img!.planes) {
+        allBytes.putUint8List(plane.bytes);
+      }
+
+      final bytes = allBytes.done().buffer.asUint8List();
+      final Size imageSize =
+          Size(img!.width.toDouble(), img!.height.toDouble());
+      final camera = cameras[0];
+      final imageRotation =
+          InputImageRotationValue.fromRawValue(camera.sensorOrientation);
+
+      if (imageRotation == null) return null;
+
+      final inputImageFormat =
+          InputImageFormatValue.fromRawValue(img!.format.raw);
+
+      if (inputImageFormat == null) return null;
+
+      final metaData = InputImageMetadata(
+        size: size,
+        rotation: imageRotation,
+        format: inputImageFormat,
+        bytesPerRow: imageSize.width.toInt(),
+      );
+
+      final inputImage = InputImage.fromBytes(bytes: bytes, metadata: metaData);
+
+      return inputImage;
     }
-    final bytes = allBytes.done().buffer.asUint8List();
-    final Size imageSize = Size(img!.width.toDouble(), img!.height.toDouble());
-    final camera = cameras[0];
-    final imageRotation =
-        InputImageRotationValue.fromRawValue(camera.sensorOrientation);
-    // if (imageRotation == null) return;
 
-    final inputImageFormat =
-        InputImageFormatValue.fromRawValue(img!.format.raw);
-    // if (inputImageFormat == null) return null;
-
-    final metaData = InputImageMetadata(
-      size: size,
-      rotation: imageRotation!,
-      format: inputImageFormat!,
-      bytesPerRow: imageSize.width.toInt(),
-    );
-
-    final inputImage = InputImage.fromBytes(bytes: bytes, metadata: metaData);
-
-    return inputImage;
+    return null;
   }
 
   //Show rectangles around detected objects
