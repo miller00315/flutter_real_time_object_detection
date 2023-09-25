@@ -1,7 +1,3 @@
-import 'dart:math';
-import 'dart:ui';
-
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
@@ -47,9 +43,8 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   initializeCamera() async {
-  
     const mode = DetectionMode.stream;
-    
+
     final options = ObjectDetectorOptions(
         mode: mode, classifyObjects: true, multipleObjects: true);
     objectDetector = ObjectDetector(options: options);
